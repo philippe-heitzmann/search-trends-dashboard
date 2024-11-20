@@ -1,0 +1,41 @@
+# Ignore the /data folder
+/data/
+
+# Ignore common data artifact filetypes
+*.csv
+*.json
+*.xml
+*.yaml
+*.yml
+*.pickle
+*.pkl
+*.h5
+*.pt
+*.ckpt
+*.npz
+*.npy
+*.parquet
+*.tsv
+*.log
+
+# Ignore Python cache files
+__pycache__/
+*.py[cod]
+
+# Ignore virtual environment folders
+venv/
+env/
+.venv/
+.env/
+
+# Ignore Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Ignore editor and OS-specific files
+*.swp
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+/src/scripts/set_git_credentials.sh
