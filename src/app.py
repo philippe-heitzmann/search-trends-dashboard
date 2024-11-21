@@ -1,5 +1,5 @@
 import streamlit as st
-from datetime import datetime
+from datetime import datetime, timedelta
 from functools import wraps
 import pandas as pd
 import logging
@@ -111,35 +111,48 @@ def main():
         # Fetch the trending data
         data = fetch_trending_data()
 
+        # Adjust the timestamp to 6 hours earlier
+        current_time = datetime.now()
+        adjusted_time = current_time - timedelta(hours=5)
+        formatted_time = adjusted_time.strftime('%A, %B %d, %Y at %I:%M %p')
+
         # Display the last refresh timestamp with markdown formatting
         timestamp_placeholder.markdown(
-            f"**Dashboard last refreshed at:** {datetime.now().strftime('%A, %B %d, %Y at %I:%M %p')}"
+            f"**Dashboard last refreshed at:** {formatted_time}"
         )
 
         if not data.empty:
+            # Rename columns, except for the first one
+            data.columns = ["Search query", "Volume", "Timeframe", "Related articles"]
+
+            # Format volume numbers with thousands separators
+            data["Volume"] = data["Volume"].apply(lambda x: f"{x:,}")
+
             # Format the DataFrame for Streamlit
-            data = data.style.format(
+            styled_data = data.style.format(
                 {
                     'Trend keywords': lambda x: x,  # Render HTML for links
+                    'Related articles': lambda x: x  # Render HTML for links
                 }
             ).set_table_styles(
                 [
-                    {'selector': 'thead th', 'props': [('display', 'none')]},  # Hide the header
+                    {'selector': 'thead th', 'props': [('text-align', 'left')]},  # Align header
                     {'selector': 'td', 'props': [('text-align', 'left'), ('vertical-align', 'top')]}  # Align cells
                 ]
             )
 
             # Display the results in a table with expanded width and flexible row height
             st.success("Trending topics updated successfully!")
-            st.write(data.to_html(escape=False), unsafe_allow_html=True)  # Render as HTML for clickable links
+            st.write(styled_data.to_html(escape=False), unsafe_allow_html=True)  # Render as HTML for clickable links
 
-            # Display the time taken to fetch results
+            # Display the time taken to fetch results (Dummy duration for example)
             time_placeholder.markdown(
                 f"_Dashboard took {fetch_trending_data.last_duration:.2f} seconds to pull results._",
                 unsafe_allow_html=True
             )
         else:
             st.error("No trending data available.")
+
 
 
 if __name__ == "__main__":
