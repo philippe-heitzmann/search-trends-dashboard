@@ -151,7 +151,7 @@ def main():
                 unsafe_allow_html=True
             )
         else:
-            st.error("No trending data available.")
+            st.error("No trending data available.") 
 
 
 
