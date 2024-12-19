@@ -19,6 +19,7 @@ fi
 echo "Running the Docker container..."
 docker run --rm -p 8501:8501 \
   -v "$(pwd)/data:/app/data" \
+  --env-file ./env/app.env \
   $IMAGE_NAME
 
 # Check if the container ran successfully

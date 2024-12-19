@@ -7,7 +7,10 @@ import time
 from trendspy import Trends
 
 from website_scraper import scrape_single_page
-from utils import save_text
+from utils import save_text, query_chatgpt
+from prompts import create_prompt_find_article_ideas
+
+
 # Set up logging to a file
 logging.basicConfig(
     filename="app.log",
@@ -198,33 +201,6 @@ def main():
             f"**Dashboard last refreshed at:** {formatted_time}"
         )
 
-    #     if not data.empty:
-    #         # Rename columns, except for the first one
-    #         data.columns = ["Search query", "Volume", "Timeframe", "Related articles"]
-
-    #         # Format volume numbers with thousands separators
-    #         data["Volume"] = data["Volume"].apply(lambda x: f"{x:,}")
-
-    #         # Format the DataFrame for Streamlit
-    #         styled_data = data.style.format(
-    #             {
-    #                 'Trend keywords': lambda x: x,  # Render HTML for links
-    #                 'Related articles': lambda x: x  # Render HTML for links
-    #             }
-    #         ).set_table_styles(
-    #             [
-    #                 {'selector': 'thead th', 'props': [('text-align', 'left')]},  # Align header
-    #                 {'selector': 'td', 'props': [('text-align', 'left'), ('vertical-align', 'top')]}  # Align cells
-    #             ]
-    #         )
-
-    #         # Display the results in a table with expanded width and flexible row height
-    #         st.success("Trending topics updated successfully!")
-    #         st.write(styled_data.to_html(escape=False), unsafe_allow_html=True)
-
-    #     else:
-    #         st.error("No trending data available.") 
-
     # Check if we have data stored in session state
     if hasattr(st.session_state, 'trending_data'):
         data = st.session_state.trending_data
@@ -256,21 +232,57 @@ def main():
             progress_message.info("Processing articles... Please wait.")
             
             try:
-                # Get only the first row using iloc[0]
-                first_row = data.iloc[0]
-                search_query = first_row["Keyword"]
-                articles = first_row["Articles"]
-                                
-                scraped_text = scrape_articles(articles)
+                # Process each trending topic
+                article_ideas_list = []
                 
-                # Save scraped text with timestamp and search query
-                timestamp = datetime.now().strftime("%m%d_%H_%M_%S")
-                save_text(scraped_text, f"./data/output_{search_query}_{timestamp}.txt")
+                # Iterate through all rows in the trending data
+                for _, row in data.iterrows():
+                    search_query = row["Keyword"]
+                    articles = row["Articles"]
+                    
+                    # Scrape and process articles
+                    scraped_text = scrape_articles(articles)
+                    
+                    # Save scraped text
+                    timestamp = datetime.now().strftime("%m%d_%H_%M_%S")
+                    save_text(scraped_text, f"./data/scrapedarticles_{search_query}_{timestamp}.txt")
+                    
+                    # Generate and save article ideas
+                    prompt = create_prompt_find_article_ideas(scraped_text)
+                    article_ideas = query_chatgpt(prompt)
+                    save_text(article_ideas, f"./data/gptsuggestions_{search_query}_{timestamp}.txt")
+                    
+                    # Add to our list of results
+                    article_ideas_list.append({
+                        'Search Query': search_query,
+                        'Article Ideas': article_ideas
+                    })
+                
+                # Update the session state with new article ideas
+                st.session_state.article_ideas_data = pd.DataFrame(article_ideas_list)
                 
                 progress_message.success("✅ Article processing complete!")
+                
+                # Display the article ideas table
+                st.subheader("Generated Article Ideas")
+                styled_ideas = st.session_state.article_ideas_data.style.set_table_styles([
+                    {'selector': 'thead th', 'props': [('text-align', 'left')]},
+                    {'selector': 'td', 'props': [('text-align', 'left'), ('vertical-align', 'top')]}
+                ])
+                st.write(styled_ideas.to_html(escape=False), unsafe_allow_html=True)
+                
             except Exception as e:
                 progress_message.error(f"❌ An error occurred: {str(e)}")
                 logging.error(f"Error processing articles: {str(e)}", exc_info=True)
+
+        # Display existing article ideas if they exist in session state
+        elif 'article_ideas_data' in st.session_state and not st.session_state.article_ideas_data.empty:
+            st.subheader("Generated Article Ideas")
+            styled_ideas = st.session_state.article_ideas_data.style.set_table_styles([
+                {'selector': 'thead th', 'props': [('text-align', 'left')]},
+                {'selector': 'td', 'props': [('text-align', 'left'), ('vertical-align', 'top')]}
+            ])
+            st.write(styled_ideas.to_html(escape=False), unsafe_allow_html=True)
 
 
 if __name__ == "__main__":
