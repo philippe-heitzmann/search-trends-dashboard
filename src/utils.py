@@ -10,8 +10,7 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO)
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-client = OpenAI()
-client.api_key = OPENAI_API_KEY
+client = OpenAI(api_key=OPENAI_API_KEY)  
 
 def query_chatgpt(prompt: str,
                   model="gpt-4o-mini") -> str:
