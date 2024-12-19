@@ -17,7 +17,9 @@ fi
 
 # Step 2: Run the Docker container
 echo "Running the Docker container..."
-docker run -p 8501:8501 $IMAGE_NAME
+docker run --rm -p 8501:8501 \
+  -v "$(pwd)/data:/app/data" \
+  $IMAGE_NAME
 
 # Check if the container ran successfully
 if [ $? -ne 0 ]; then
@@ -25,4 +27,8 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
-echo "The Related Queries Dashboard is running on http://localhost:8501"
+# Step 3: Cleanup - Remove the Docker image
+echo "Cleaning up - Removing Docker image..."
+docker rmi $IMAGE_NAME
+
+echo "The Related Queries Dashboard has finished running and cleaned up resources."
